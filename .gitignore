@@ -1,0 +1,39 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform variable files
+*.tfvars
+*.tfvars.json
+
+# Sensitive files
+secrets.tfvars
+
+# AWS credentials
+.aws/
+
+# Ansible
+*.retry
+
+# Python (if you later use dynamic inventory/scripts)
+__pycache__/
+*.pyc
+venv/
+.env
+
+# VS Code
+.vscode/
+
+# IntelliJ
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
