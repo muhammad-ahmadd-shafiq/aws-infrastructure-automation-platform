@@ -1,0 +1,14 @@
+---
+- name: Pull nginx image
+  community.docker.docker_image:
+    name: nginx
+    source: pull
+
+- name: Run nginx container
+  community.docker.docker_container:
+    name: nginx
+    image: nginx
+    state: started
+    restart_policy: always
+    published_ports:
+      - "80:80"

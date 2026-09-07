@@ -1,0 +1,9 @@
+---
+- name: Configure AWS Server
+  hosts: aws
+  become: true
+
+  roles:
+    - common
+    - docker
+    - app
