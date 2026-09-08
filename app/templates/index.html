@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CloudOps Control Center</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+    <h1>CloudOps Control Center</h1>
+</header>
+
+<div class="grid">
+
+    <div class="card">
+        <h2>Server</h2>
+        <p><strong>Hostname:</strong> {{ data.hostname }}</p>
+        <p><strong>Platform:</strong> {{ data.platform }}</p>
+        <p><strong>Uptime:</strong> {{ data.uptime }}</p>
+    </div>
+
+    <div class="card">
+        <h2>Resource Usage</h2>
+        <p>CPU: {{ data.cpu }}%</p>
+        <p>Memory: {{ data.memory }}%</p>
+        <p>Disk: {{ data.disk }}%</p>
+    </div>
+
+    <div class="card">
+        <h2>Deployment Info</h2>
+        <p>Version: {{ data.version }}</p>
+        <p>Build: {{ data.build }}</p>
+    </div>
+
+    <div class="card">
+        <h2>Containers</h2>
+
+        <p>Total Running: {{ data.container_count }}</p>
+
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+            </tr>
+
+            {% for c in data.containers %}
+            <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.status }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
+    <div class="card">
+    <h2>Pipeline Status</h2>
+
+    <p><strong>Infrastructure:</strong> Terraform</p>
+    <p><strong>Configuration:</strong> Ansible</p>
+    <p><strong>Container Runtime:</strong> Docker</p>
+    <p><strong>Cloud:</strong> AWS EC2</p>
+    <p><strong>Application:</strong> CloudOps Control Center</p>
+</div>
+
+</div>
+
+</body>
+</html>
