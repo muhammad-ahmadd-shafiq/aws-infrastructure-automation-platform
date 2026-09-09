@@ -106,6 +106,7 @@ jobs:
 
     outputs:
       server_ip: ${{ steps.tf_output.outputs.server_ip }}
+      sg_id: ${{ steps.tf_output.outputs.sg_id }}
 
     steps:
       - uses: actions/checkout@v4
@@ -144,11 +145,12 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -auto-approve tfplan
 
-      - name: Read server IP output
+      - name: Read Terraform outputs
         id: tf_output
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           echo "server_ip=$(terraform output -raw server_public_ip)" >> "$GITHUB_OUTPUT"
+          echo "sg_id=$(terraform output -raw security_group_id)" >> "$GITHUB_OUTPUT"
 
   configure-and-deploy:
     name: Configure Server & Deploy App
@@ -157,6 +159,26 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get runner public IP
+        id: runner_ip
+        run: |
+          echo "ip=$(curl -s https://checkip.amazonaws.com)" >> "$GITHUB_OUTPUT"
+
+      - name: Temporarily allow this runner's IP for SSH
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ needs.terraform-apply.outputs.sg_id }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.runner_ip.outputs.ip }}/32
 
       - name: Install Ansible
         run: |
@@ -197,3 +219,12 @@ jobs:
             -e "app_dashboard_image=${{ env.IMAGE_NAME }}:${{ github.sha }}" \
             -e "app_version=${{ github.sha }}" \
             -e "app_build_number=${{ github.run_number }}"
+
+      - name: Revoke temporary SSH access
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ needs.terraform-apply.outputs.sg_id }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.runner_ip.outputs.ip }}/32
