@@ -15,6 +15,7 @@ jobs:
   terraform-lint:
     name: Lint & Validate Terraform
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -54,21 +55,26 @@ jobs:
   ansible-lint:
     name: Lint Ansible
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Run ansible-lint
-        uses: ansible/ansible-lint-action@v6
+        uses: ansible/ansible-lint@v25.5.0
         with:
-          path: "ansible/playbooks/setup.yml"
+          path: ansible/playbooks/setup.yml
 
   build-and-push:
     name: Build & Push App Image
     runs-on: ubuntu-latest
-    needs: [terraform-lint, ansible-lint]
+    needs:
+      - terraform-lint
+      - ansible-lint
+
     permissions:
       contents: read
       packages: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -95,8 +101,10 @@ jobs:
     name: Provision Infrastructure
     runs-on: ubuntu-latest
     needs: build-and-push
+
     outputs:
       server_ip: ${{ steps.tf_output.outputs.server_ip }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -137,12 +145,14 @@ jobs:
       - name: Read server IP output
         id: tf_output
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: echo "server_ip=$(terraform output -raw server_public_ip)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "server_ip=$(terraform output -raw server_public_ip)" >> "$GITHUB_OUTPUT"
 
   configure-and-deploy:
     name: Configure Server & Deploy App
     runs-on: ubuntu-latest
     needs: terraform-apply
+
     steps:
       - uses: actions/checkout@v4
 
@@ -168,9 +178,12 @@ jobs:
       - name: Wait for SSH to be ready
         run: |
           for i in $(seq 1 20); do
-            ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
+            ssh \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=5 \
               -i ~/.ssh/deploy_key \
               ubuntu@${{ needs.terraform-apply.outputs.server_ip }} "echo ready" && break
+
             echo "Waiting for SSH..."
             sleep 10
           done
