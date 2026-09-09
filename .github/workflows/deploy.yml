@@ -1,0 +1,184 @@
+name: CloudOps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: ghcr.io/muhammad-ahmadd-shafiq/cloudops-dashboard
+  AWS_REGION: us-east-1
+  TF_WORKING_DIR: terraform
+
+jobs:
+
+  terraform-lint:
+    name: Lint & Validate Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Terraform fmt check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init (no backend)
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          tflint --init
+          tflint -f compact
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: ${{ env.TF_WORKING_DIR }}
+          quiet: true
+          soft_fail: true
+
+  ansible-lint:
+    name: Lint Ansible
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@v25.5.0
+        with:
+          path: "ansible/playbooks/setup.yml"
+
+  build-and-push:
+    name: Build & Push App Image
+    runs-on: ubuntu-latest
+    needs: [terraform-lint, ansible-lint]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build and Push Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  terraform-apply:
+    name: Provision Infrastructure
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    outputs:
+      server_ip: ${{ steps.tf_output.outputs.server_ip }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Terraform Init (remote S3 backend)
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=aws-infrastructure-automation-platform/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=terraform-locks" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform plan \
+            -var="my_ip=${{ secrets.MY_IP }}" \
+            -var="public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Read server IP output
+        id: tf_output
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: echo "server_ip=$(terraform output -raw server_public_ip)" >> "$GITHUB_OUTPUT"
+
+  configure-and-deploy:
+    name: Configure Server & Deploy App
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+          ansible-galaxy collection install community.docker
+
+      - name: Write SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Generate inventory from Terraform output
+        run: |
+          chmod +x ansible/inventory/generate_inventory.sh
+          ansible/inventory/generate_inventory.sh \
+            "${{ needs.terraform-apply.outputs.server_ip }}" \
+            "$HOME/.ssh/deploy_key"
+
+      - name: Wait for SSH to be ready
+        run: |
+          for i in $(seq 1 20); do
+            ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
+              -i ~/.ssh/deploy_key \
+              ubuntu@${{ needs.terraform-apply.outputs.server_ip }} "echo ready" && break
+            echo "Waiting for SSH..."
+            sleep 10
+          done
+
+      - name: Run Ansible Playbook
+        working-directory: ansible
+        run: |
+          ansible-playbook playbooks/setup.yml \
+            -e "dashboard_image=${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+            -e "app_version=${{ github.sha }}" \
+            -e "build_number=${{ github.run_number }}"
