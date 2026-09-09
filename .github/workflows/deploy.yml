@@ -62,7 +62,9 @@ jobs:
       - name: Run ansible-lint
         uses: ansible/ansible-lint@v25.5.0
         with:
-          path: ansible/playbooks/setup.yml
+          working_directory: "ansible"
+          args: "playbooks/setup.yml"
+          requirements_file: "requirements.yml"
 
   build-and-push:
     name: Build & Push App Image
@@ -160,7 +162,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ansible
-          ansible-galaxy collection install community.docker
+          ansible-galaxy collection install -r ansible/requirements.yml
 
       - name: Write SSH private key
         run: |
@@ -192,6 +194,6 @@ jobs:
         working-directory: ansible
         run: |
           ansible-playbook playbooks/setup.yml \
-            -e "dashboard_image=${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+            -e "app_dashboard_image=${{ env.IMAGE_NAME }}:${{ github.sha }}" \
             -e "app_version=${{ github.sha }}" \
-            -e "build_number=${{ github.run_number }}"
+            -e "app_build_number=${{ github.run_number }}"
