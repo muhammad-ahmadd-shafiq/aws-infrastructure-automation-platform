@@ -7,14 +7,14 @@
 
 - name: Pull dashboard image
   community.docker.docker_image:
-    name: "{{ dashboard_image }}"
+    name: "{{ app_dashboard_image }}"
     source: pull
     force_source: true
 
 - name: Run dashboard container
   community.docker.docker_container:
     name: cloudops-dashboard
-    image: "{{ dashboard_image }}"
+    image: "{{ app_dashboard_image }}"
     state: started
     restart_policy: always
     recreate: true
@@ -22,4 +22,4 @@
       - "80:5000"
     env:
       APP_VERSION: "{{ app_version }}"
-      BUILD_NUMBER: "{{ build_number }}"
+      BUILD_NUMBER: "{{ app_build_number }}"
