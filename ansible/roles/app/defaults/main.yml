@@ -1,0 +1,4 @@
+---
+dashboard_image: "ghcr.io/muhammad-ahmadd-shafiq/cloudops-dashboard:latest"
+app_version: "1.0.0"
+build_number: "manual"

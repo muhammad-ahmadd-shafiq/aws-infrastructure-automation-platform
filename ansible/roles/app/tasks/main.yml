@@ -1,14 +1,25 @@
 ---
-- name: Pull nginx image
-  community.docker.docker_image:
-    name: nginx
-    source: pull
-
-- name: Run nginx container
+- name: Remove nginx container
   community.docker.docker_container:
     name: nginx
-    image: nginx
+    state: absent
+  ignore_errors: true
+
+- name: Pull dashboard image
+  community.docker.docker_image:
+    name: "{{ dashboard_image }}"
+    source: pull
+    force_source: true
+
+- name: Run dashboard container
+  community.docker.docker_container:
+    name: cloudops-dashboard
+    image: "{{ dashboard_image }}"
     state: started
     restart_policy: always
+    recreate: true
     published_ports:
-      - "80:80"
+      - "80:5000"
+    env:
+      APP_VERSION: "{{ app_version }}"
+      BUILD_NUMBER: "{{ build_number }}"

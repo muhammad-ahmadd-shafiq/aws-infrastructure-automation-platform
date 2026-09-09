@@ -8,10 +8,14 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+tfplan
 
 # Terraform variable files
 *.tfvars
 *.tfvars.json
+
+# Backend config (contains bucket name / real infra values)
+backend.hcl
 
 # Sensitive files
 secrets.tfvars
@@ -21,6 +25,7 @@ secrets.tfvars
 
 # Ansible
 *.retry
+ansible/inventory/hosts.ini
 
 # Python (if you later use dynamic inventory/scripts)
 __pycache__/

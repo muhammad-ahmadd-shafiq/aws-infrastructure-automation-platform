@@ -1,0 +1,10 @@
+# Copy to backend.hcl (gitignored) for local runs, or pass the same values
+# as -backend-config flags in CI.
+#
+#   terraform init -backend-config=backend.hcl
+#
+bucket         = "your-unique-tf-state-bucket-name"
+key            = "aws-infrastructure-automation-platform/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "terraform-locks"
+encrypt        = true
