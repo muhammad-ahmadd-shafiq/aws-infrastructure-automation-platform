@@ -1,14 +1,23 @@
 ---
-- name: Pull nginx image
-  community.docker.docker_image:
-    name: nginx
-    source: pull
-
-- name: Run nginx container
+- name: Remove nginx container
   community.docker.docker_container:
     name: nginx
-    image: nginx
+    state: absent
+  ignore_errors: true
+
+- name: Pull latest dashboard image
+  community.docker.docker_image:
+    name: ghcr.io/muhammad-ahmadd-shafiq/cloudops-dashboard:latest
+    source: pull
+
+- name: Run dashboard container
+  community.docker.docker_container:
+    name: cloudops-dashboard
+    image: ghcr.io/muhammad-ahmadd-shafiq/cloudops-dashboard:latest
     state: started
     restart_policy: always
     published_ports:
-      - "80:80"
+      - "80:5000"
+    env:
+      APP_VERSION: "1.0.0"
+      BUILD_NUMBER: "manual"
