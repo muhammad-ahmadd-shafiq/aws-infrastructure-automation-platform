@@ -2,13 +2,6 @@
  
 **End-to-end Infrastructure-as-Code platform** that provisions AWS infrastructure with Terraform, configures it with Ansible, and deploys a containerized application through a fully automated, security-conscious CI/CD pipeline.
  
-![Terraform](https://img.shields.io/badge/Terraform-1.9-844FBA?logo=terraform&logoColor=white)
-![Ansible](https://img.shields.io/badge/Ansible-2.21-EE0000?logo=ansible&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-EC2%20%7C%20VPC%20%7C%20S3-FF9900?logo=amazonaws&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-containerized-2496ED?logo=docker&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-green)
- 
 ---
  
 ## What this is
