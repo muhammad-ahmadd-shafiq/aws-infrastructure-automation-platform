@@ -1,14 +1,21 @@
 # AWS Infrastructure Automation Platform
  
 **End-to-end Infrastructure-as-Code platform** that provisions AWS infrastructure with Terraform, configures it with Ansible, and deploys a containerized application through a fully automated, security-conscious CI/CD pipeline.
-  
+ 
+![Terraform](https://img.shields.io/badge/Terraform-1.9-844FBA?logo=terraform&logoColor=white)
+![Ansible](https://img.shields.io/badge/Ansible-2.21-EE0000?logo=ansible&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-EC2%20%7C%20VPC%20%7C%20S3-FF9900?logo=amazonaws&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-containerized-2496ED?logo=docker&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+ 
 ---
  
 ## What this is
  
-Push to `main`, and the pipeline takes care of everything: linting the infrastructure code, building and publishing a container image, provisioning (or updating) AWS infrastructure with remote, locked Terraform state, and configuring + deploying the application onto that infrastructure with Ansible — with no long-lived SSH access left open on the box afterward.
+Push to `main`, and the pipeline takes care of everything: linting the infrastructure code, building and publishing a container image, provisioning (or updating) AWS infrastructure with remote, locked Terraform state, and configuring and deploying the application onto that infrastructure with Ansible, with no long-lived SSH access left open on the box afterward.
  
-This isn't a toy example. It solves the problems that actually show up when you wire Terraform + Ansible + GitHub Actions together for real: state locking, CI runners that don't have a fixed IP, private container registries, idempotent re-deploys, and secrets that never touch the repo.
+This isn't a toy example. It solves the problems that actually show up when you wire Terraform, Ansible, and GitHub Actions together for real: state locking, CI runners that don't have a fixed IP, private container registries, idempotent re-deploys, and secrets that never touch the repo.
  
 ## Architecture
  
@@ -58,11 +65,11 @@ Every run deploys the **exact image built in that run** (tagged by commit SHA, n
 | Design choice | Reason |
 |---|---|
 | **Remote state (S3 + DynamoDB)** | State isn't local to any one machine or CI runner; concurrent applies are locked, not corrupted. |
-| **Dynamic SSH whitelisting** | GitHub-hosted runners don't have a fixed IP. Rather than opening port 22 to the internet permanently, the pipeline authorizes *only its own current IP*, deploys, then revokes it — every single run. |
+| **Dynamic SSH whitelisting** | GitHub-hosted runners don't have a fixed IP. Rather than opening port 22 to the internet permanently, the pipeline authorizes *only its own current IP*, deploys, then revokes it, every single run. |
 | **Commit-SHA image tags** | `:latest` is a moving target with no guarantee the tag you pull matches the commit that triggered the deploy. Every deploy references an immutable, specific image. |
 | **Private GHCR + scoped pull auth** | The container registry isn't public by default. The deploy step authenticates with a masked, `no_log`-protected credential rather than relying on public image visibility. |
-| **Idempotent Ansible roles** | Re-running the pipeline against an already-configured server changes nothing that's already correct — safe to re-run, safe to re-trigger. |
-| **Partial Terraform backend config** | The state bucket name never lives in source control — it's injected at `terraform init` time via CI secrets or a local, gitignored `backend.hcl`. |
+| **Idempotent Ansible roles** | Re-running the pipeline against an already-configured server changes nothing that's already correct, safe to re-run, safe to re-trigger. |
+| **Partial Terraform backend config** | The state bucket name never lives in source control; it's injected at `terraform init` time via CI secrets or a local, gitignored `backend.hcl`. |
  
 ## Repository layout
  
@@ -86,7 +93,7 @@ ansible/
 │   ├── docker/             # Docker Engine install & config
 │   └── app/                # GHCR auth, image pull, container run
 ├── inventory/
-│   ├── hosts.ini.example    # Template — no real IP/paths committed
+│   ├── hosts.ini.example    # Template, no real IP/paths committed
 │   └── generate_inventory.sh
 └── requirements.yml
  
@@ -105,7 +112,7 @@ terraform init
 terraform apply -var="bucket_name=<your-globally-unique-bucket-name>"
 ```
  
-This creates a versioned, encrypted, private S3 bucket and a `terraform-locks` DynamoDB table. Only this bootstrap config uses local state — by necessity, since it creates the backend the rest of the project relies on.
+This creates a versioned, encrypted, private S3 bucket and a `terraform-locks` DynamoDB table. Only this bootstrap config uses local state, by necessity, since it creates the backend the rest of the project relies on.
  
 ### 2. Configure GitHub Actions secrets
  
@@ -115,14 +122,14 @@ This creates a versioned, encrypted, private S3 bucket and a `terraform-locks` D
 |---|---|
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Terraform apply + dynamic security group management |
 | `TF_STATE_BUCKET` | Bucket created in step 1 |
-| `MY_IP` | Your IP — used for direct/manual access outside CI |
+| `MY_IP` | Your IP, used for direct/manual access outside CI |
 | `SSH_PUBLIC_KEY` | Injected into the EC2 instance at launch |
 | `SSH_PRIVATE_KEY` | Matching private key, used by Ansible over SSH |
 | `GHCR_USERNAME` / `GHCR_TOKEN` | Push + authenticate pulls against the container registry |
  
 ### 3. Push to `main`
  
-That's it — lint, build, provision, and deploy all run automatically.
+That's it, lint, build, provision, and deploy all run automatically.
  
 ## Local development
  
@@ -154,9 +161,9 @@ ansible-playbook playbooks/setup.yml \
 - **Application:** Flask
 ## License
  
-MIT — see [LICENSE](./LICENSE).
+MIT, see [LICENSE](./LICENSE).
  
 ## Author
  
-**Muhammad Ahmad Shafiq** — [GitHub](https://github.com/muhammad-ahmadd-shafiq)
+**Muhammad Ahmad Shafiq** - [GitHub](https://github.com/muhammad-ahmadd-shafiq)
  
