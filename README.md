@@ -1,5 +1,10 @@
 # AWS Infrastructure Automation Platform
- 
+![AWS](https://img.shields.io/badge/AWS-%23232F3E.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
+![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)
+![Ansible](https://img.shields.io/badge/ansible-%23EE0000.svg?style=for-the-badge&logo=ansible&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
+
 **End-to-end Infrastructure-as-Code platform** that provisions AWS infrastructure with Terraform, configures it with Ansible, and deploys a containerized application through a fully automated, security-conscious CI/CD pipeline.
  
 ---
@@ -94,7 +99,17 @@ app/                         # Flask dashboard + Dockerfile
  
 .github/workflows/deploy.yml # Full CI/CD pipeline
 ```
- 
+## Prerequisites
+
+Ensure you have the following tools installed and configured locally before proceeding:
+
+* **AWS CLI** (`v2.x+`) — Installed and configured with appropriate IAM credentials (`aws configure`).
+* **Terraform** (`>= 1.5.0`) — Installed for local infrastructure operations and testing.
+* **Ansible** (`core >= 2.12`) — Installed locally if running playbooks outside CI/CD.
+* **Docker Engine / Desktop** — Required to build and test application containers locally.
+
+--- 
+
 ## Getting started
  
 ### 1. One-time: create the remote state backend
@@ -143,7 +158,15 @@ ansible-playbook playbooks/setup.yml \
   -e "app_ghcr_username=<your-username>" \
   -e "app_ghcr_token=<your-token>"
 ```
- 
+## Verification & Teardown
+
+### Verification
+Once the GitHub Actions workflow completes successfully or after running Ansible locally:
+1. Retrieve the instance IP from your GitHub Actions log output or run `terraform output server_public_ip` in the `terraform/` directory.
+2. Open your browser or run a cURL command:
+   ```bash
+   curl http://<server_public_ip>:5000
+
 ## Tech stack
  
 - **Provisioning:** Terraform, AWS (VPC, EC2, Security Groups, S3, DynamoDB)
